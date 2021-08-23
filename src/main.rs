@@ -3,8 +3,16 @@ use std::collections::HashMap;
 use reqwest::header::USER_AGENT;
 use scraper::{Html, Selector};
 
+
+fn main()  {
+   match rank_all() {
+       Ok(_) => {},
+       Err(e) => println!("{}",&e)
+   }
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn rank_all() -> Result<(), Box<dyn std::error::Error>>{
     let client = reqwest::Client::new();
     let resp = client
         .get("https://www.bilibili.com/v/popular/rank/all")
@@ -26,6 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut href_map = HashMap::new();
     let mut rank_map = HashMap::new();
+    let mut title_map = HashMap::new();
 
     let body = document.select(&body_selector).next().unwrap();
     let app = body.select(&app_selector).next().unwrap();
@@ -39,9 +48,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let contant = li.select(&content_selector).next().unwrap();
         let info = contant.select(&info_selector).next().unwrap();
         let a = info.select(&a_selector).next().unwrap();
-        let title = a.inner_html();
-        rank_map.insert(title.clone(), li.value().attr("data-rank").unwrap());
-        href_map.insert(title.clone(), a.value().attr("href").unwrap());
+        let bv= a.value().attr("href").unwrap().split("/").find(|path| path.starts_with("BV")).unwrap();
+        title_map.insert(bv.clone(), a.inner_html());
+        rank_map.insert(bv.clone(), li.value().attr("data-rank").unwrap());
+        href_map.insert(bv.clone(), a.value().attr("href").unwrap());
     }
+
     Ok(())
 }
